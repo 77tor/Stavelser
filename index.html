@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stavelser - Perfekt Sentrering</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        @font-face {
+            font-family: 'Skogstavskrift';
+            src: url('skogstavskrift.otf') format('opentype');
+            font-weight: normal; font-style: normal;
+        }
+        @font-face {
+            font-family: 'Trykkskrift';
+            src: url('trykkskrift.otf') format('opentype');
+            font-weight: normal; font-style: normal;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Andika&display=swap');
+
+        :root {
+            --sidebar-bg: #243447;
+            --accent-green: #27ae60;
+            --sidebar-text: #ffffff;
+            --main-bg: #f0f2f5;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; display: flex; height: 100vh; 
+            background-color: var(--main-bg);
+            overflow: hidden; 
+        }
+
+        .sidebar {
+            width: 350px; min-width: 350px; 
+            background-color: var(--sidebar-bg); color: var(--sidebar-text);
+            padding: 15px; box-sizing: border-box; 
+            display: flex; flex-direction: column;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.3); z-index: 10; 
+            overflow-y: auto;
+        }
+
+        .sidebar h2 { text-align: center; text-transform: uppercase; font-size: 1.1rem; margin-top: 0; }
+
+        textarea { 
+            width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: none; 
+            margin-bottom: 15px; background-color: #ecf0f1; resize: none; box-sizing: border-box;
+        }
+
+        .control-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 8px; 
+            margin-bottom: 8px; font-size: 0.9rem;
+        }
+
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { 
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+            background-color: #ccc; transition: .4s; border-radius: 20px; 
+        }
+        .slider:before { 
+            position: absolute; content: ""; height: 14px; width: 14px; 
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; 
+        }
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        select, input[type="number"] {
+            background: #ecf0f1; border: none; border-radius: 4px; padding: 4px; width: 100px;
+        }
+
+        .action-btn { 
+            width: 100%; padding: 12px; border-radius: 8px; border: none; 
+            font-weight: 600; cursor: pointer; color: white; transition: 0.2s; margin-bottom: 10px;
+        }
+
+        .main-content { 
+            flex-grow: 1; overflow-y: auto; display: flex; 
+            flex-direction: column; align-items: center; padding: 40px 20px; 
+        }
+        
+        #capture-area { 
+            background: white; 
+            padding: 2cm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+        }
+
+        .line {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 0.5em;
+            column-gap: 0.3em; 
+            row-gap: 0.5em;
+        }
+
+        .word-container {
+            display: flex;
+            flex-wrap: nowrap;
+        }
+
+        .syllable {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            line-height: 1; /* Fjerner ekstra luft over/under */
+            text-align: center;
+        }
+
+        /* RUTENETT MODUS */
+        .with-border .line {
+            column-gap: 0; 
+            row-gap: 0;
+            margin-bottom: 0;
+        }
+
+        .with-border .syllable {
+            border: 1px solid #000;
+            margin-right: -1px; 
+            margin-bottom: -1px;
+            width: var(--box-width, 70px);
+            height: var(--box-height, 60px);
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        @media print {
+            @page { margin: 0; size: auto; }
+            body { background: white; overflow: visible !important; }
+            .sidebar { display: none !important; }
+            .main-content { padding: 0; overflow: visible !important; }
+            #capture-area { box-shadow: none !important; margin: 0; width: 100%; }
+            ::-webkit-scrollbar { display: none; }
+        }
+
+/* HAMBURGER MENY-KNAPP */
+.menu-container {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    width: 20px;
+    padding: 5px;
+}
+
+.hamburger span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background-color: white;
+    border-radius: 1px;
+    transition: 0.3s;
+}
+
+/* SELVE MENYEN SOM KOMMER FREM */
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 30px; /* Juster denne så den passer under hamburgeren */
+    left: 0;
+    background-color: #2c3e50;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    width: 200px;
+    z-index: 100;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+}
+
+.menu-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    vertical-align: middle;
+    object-fit: contain;
+    border-radius: 3px;
+}
+
+.dropdown-menu a {
+    display: block;
+    color: white;
+    padding: 12px 15px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.dropdown-menu a:hover {
+    background-color: #34495e;
+}
+
+/* Viser menyen når man legger til klassen "show" via JS */
+.dropdown-menu.show {
+    display: block;
+}
+
+/* Deaktivert meny-valg */
+.menu-item-disabled {
+    opacity: 0.4;
+    filter: grayscale(100%);
+    pointer-events: none;
+    cursor: default;
+}
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-header" style="display: flex; align-items: center; margin-bottom: 20px;">
+        <div class="menu-container" style="margin-bottom: 0; margin-right: 15px;">
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <div id="myDropdown" class="dropdown-menu">
+                <a href="https://77tor.github.io/gitter/" target="_self">
+                    <img src="gitter_02.png" class="menu-icon"> Gitter-ord
+                </a>
+                <a href="https://77tor.github.io/ord-sok/" target="_self"> 
+                    <img src="ord-sok.png" class="menu-icon"> Ordsøk
+                </a>
+                <a href="https://77tor.github.io/Silhuettord/" target="_self">
+                    <img src="silhuett-ord_05.png" class="menu-icon"> Silhuett-ord
+                </a>
+                <a href="https://77tor.github.io/Stavelser/" target="_self" class="menu-item-disabled">
+                    <img src="stavelser_01.png" class="menu-icon"> Stavelser
+                </a>
+            </div>
+        </div>
+        <h2 style="margin: 0; flex-grow: 1; text-align: center;">Stavelser</h2>
+    </div>
+
+    <textarea id="text-input" placeholder="Skriv tekst her... 
+Bruk Enter ved ny setning.
+
+Tips: Bruk bindestrek for å dele sammensatte ord manuelt (f.eks. gutt-unge)." oninput="generate()"></textarea>
+
+    <div class="sidebar-controls">
+        <div class="control-item">
+            <span>Font</span>
+            <select id="font-family" onchange="generate()">
+                <option value="'Trykkskrift', sans-serif">Trykkskrift</option>
+                <option value="'Skogstavskrift', cursive">Skogstavskrift</option>
+                <option value="'Andika', sans-serif">Andika</option>
+                <option value="'Courier New', Courier, monospace">Monospace</option>
+                <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                <option value="Arial, sans-serif">Arial</option>
+            </select>
+        </div>
+        <div class="control-item">
+            <span>Skriftstørrelse</span>
+            <input type="number" id="font-size" value="24" min="10" max="100" onchange="generate()">
+        </div>
+        <div class="control-item">
+            <span>Boks-bredde (px)</span>
+            <input type="number" id="box-width" value="70" min="40" max="400" onchange="generate()">
+        </div>
+        <div class="control-item">
+            <span>STORE bokstaver</span>
+            <label class="switch">
+                <input type="checkbox" id="toggle-upper" onchange="generate()" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-item">
+            <span>Fet skrift</span>
+            <label class="switch">
+                <input type="checkbox" id="toggle-bold" onchange="generate()" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-item">
+            <span>Med ramme</span>
+            <label class="switch">
+                <input type="checkbox" id="toggle-border" onchange="generate()" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button class="action-btn" style="background-color: var(--accent-green);" onclick="generate()">OPPDATER</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="action-btn" style="background-color: #2980b9;" onclick="window.print()">SKRIV UT</button>
+            <button class="action-btn" style="background-color: #9b59b6;" onclick="downloadImage()">BILDE</button>
+        </div>
+        <button class="action-btn" style="background-color: #ff7675;" onclick="resetForm()">NULLSTILL</button>
+    </div>
+</div>
+
+<div class="main-content">
+    <div id="capture-area">
+        <div id="output-container"></div>
+    </div>
+</div>
+
+<script>
+function splitWordIntoSyllables(word) {
+    const vowels = "aeiouyæøåAEIOUYÆØÅ";
+    
+    // 1. Manuell overstyring (Sammensatte ord, binde-s, binde-e)
+    // Skriv f.eks. "hørings-uttalelse" eller "ma-ski-ner"
+    if (word.includes('-')) {
+        let parts = word.split('-');
+        let allSyllables = [];
+        parts.forEach((part) => {
+            let subSyllables = splitWordIntoSyllables(part);
+            allSyllables = allSyllables.concat(subSyllables);
+        });
+        return allSyllables;
+    }
+
+    let cleanWord = word.replace(/[.,!?;:]/g, '');
+    let punctuation = word.replace(/[a-zA-ZæøåÆØÅ0-9]/g, '');
+
+    if (cleanWord.length <= 3) return [word];
+    
+    let syllables = [];
+    let start = 0;
+    
+    for (let i = 0; i < cleanWord.length; i++) {
+        if (vowels.includes(cleanWord[i])) {
+            let nextVowelIndex = -1;
+            for (let j = i + 1; j < cleanWord.length; j++) {
+                if (vowels.includes(cleanWord[j])) {
+                    nextVowelIndex = j;
+                    break;
+                }
+            }
+
+            if (nextVowelIndex !== -1) {
+                let numConsonants = nextVowelIndex - i - 1;
+                let splitPoint = -1;
+
+                if (numConsonants === 1) {
+                    splitPoint = i + 1; // so-le
+                } else if (numConsonants >= 2) {
+                    // SJEKK FOR "SK", "KJ", "SJ" (valgfritt - her kan man legge til flere)
+                    let combo = cleanWord.substring(i + 1, i + 3).toLowerCase();
+                    if (combo === "sk" || combo === "kj" || combo === "sj") {
+                        splitPoint = i + 1; // ma-ski-ner (deler foran sk)
+                    } else {
+                        splitPoint = i + 2; // bak-ken (deler mellom k-k)
+                    }
+                }
+
+                if (splitPoint !== -1 && splitPoint > start) {
+                    syllables.push(cleanWord.substring(start, splitPoint));
+                    start = splitPoint;
+                    i = splitPoint - 1;
+                }
+            }
+        }
+    }
+    
+    let lastSyllable = cleanWord.substring(start) + punctuation;
+    if (lastSyllable) syllables.push(lastSyllable);
+    
+    return syllables;
+}
+
+
+function toggleMenu() {
+    document.getElementById("myDropdown").classList.toggle("show");
+}
+
+// Lukk menyen hvis man klikker utenfor
+window.onclick = function(event) {
+    if (!event.target.closest('.menu-container')) {
+        var dropdowns = document.getElementsByClassName("dropdown-menu");
+        for (var i = 0; i < dropdowns.length; i++) {
+            var openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains('show')) {
+                openDropdown.classList.remove('show');
+            }
+        }
+    }
+}
+
+    function generate() {
+        const input = document.getElementById('text-input').value;
+        const isUpper = document.getElementById('toggle-upper').checked;
+        const isBold = document.getElementById('toggle-bold').checked;
+        const hasBorder = document.getElementById('toggle-border').checked;
+        const fontSize = document.getElementById('font-size').value;
+        const boxWidth = document.getElementById('box-width').value;
+        const fontFamily = document.getElementById('font-family').value;
+        const outputContainer = document.getElementById('output-container');
+        
+        const area = document.getElementById('capture-area');
+        
+        if (hasBorder) {
+            area.classList.add('with-border');
+            area.style.setProperty('--box-width', boxWidth + "px");
+            area.style.setProperty('--box-height', (parseInt(fontSize) * 2.5) + "px");
+        } else {
+            area.classList.remove('with-border');
+        }
+
+        area.style.fontSize = fontSize + "px";
+        area.style.fontFamily = fontFamily;
+        area.style.fontWeight = isBold ? "bold" : "normal";
+
+        const lines = input.split('\n');
+        let finalHtml = "";
+
+        lines.forEach(lineStr => {
+            if (lineStr.trim() === "") {
+                finalHtml += `<div style="height: 1em;"></div>`;
+                return;
+            }
+            let lineHtml = `<div class="line">`;
+            const words = lineStr.split(/\s+/);
+            words.forEach(word => {
+                if (word === "") return;
+                const processedWord = isUpper ? word.toUpperCase() : word;
+                const syllables = splitWordIntoSyllables(processedWord);
+                lineHtml += `<div class="word-container">`;
+                syllables.forEach((s, index) => {
+                    let formatted = s;
+                    if (syllables.length > 1) {
+                        if (index === 0) formatted = s + "-";
+                        else if (index === syllables.length - 1) formatted = "-" + s;
+                        else formatted = "-" + s + "-";
+                    }
+                    lineHtml += `<span class="syllable">${formatted}</span>`;
+                });
+                lineHtml += `</div>`;
+            });
+            lineHtml += `</div>`;
+            finalHtml += lineHtml;
+        });
+        outputContainer.innerHTML = finalHtml;
+    }
+
+    function resetForm() { if(confirm("Tømme alt?")) { document.getElementById('text-input').value = ""; generate(); } }
+
+    async function downloadImage() {
+        const area = document.getElementById('capture-area');
+        const canvas = await html2canvas(area, { scale: 2 });
+        const link = document.createElement('a');
+        link.download = 'stavelser.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    generate();
+</script>
+</body>
+</html>
