@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stavelser - Perfekt Sentrering</title>
+    <title>Stavelser</title>
     <link rel="icon" type="image/png" href="stavelser_02.png">
     <link rel="apple-touch-icon" href="stavelser_02.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -279,6 +279,16 @@
     display: inline-block; /* Gjør at containeren "klemmer" innholdet */
     min-width: 100%;
 }
+
+/* Når denne klassen er aktiv, vil boksene krympe/strekke seg etter teksten */
+.fit-boxes .syllable {
+    width: auto !important;
+    padding-left: 12px;  /* Litt mer luft ser ofte bedre ut i tilpassede bokser */
+    padding-right: 12px;
+    min-width: 40px; 
+    margin-right: -1px;  /* Sikrer at rammene overlapper perfekt */
+    margin-bottom: -1px; /* Sikrer at rammene overlapper nedover */
+}
     </style>
 </head>
 <body>
@@ -356,6 +366,13 @@ Tips: Bruk bindestrek for å dele sammensatte ord manuelt (f.eks. gutt-unge)."><
                 <span class="slider"></span>
             </label>
         </div>
+<div class="control-item">
+    <span>Tilpassede bokser</span>
+    <label class="switch">
+        <input type="checkbox" id="toggle-fit" onchange="generate()">
+        <span class="slider"></span>
+    </label>
+</div>
     </div>
 
 <div style="margin-top: 10px;">
@@ -486,26 +503,42 @@ function generate(isManualClick = false) {
     placeholder.style.display = "none";
     area.style.display = "block";
 
-    // --- Resten av din eksisterende logikk ---
+    // --- Hent verdier fra kontrollene ---
     const isUpper = document.getElementById('toggle-upper').checked;
     const isBold = document.getElementById('toggle-bold').checked;
     const hasBorder = document.getElementById('toggle-border').checked;
+    const isFit = document.getElementById('toggle-fit').checked; // Den nye bryteren din
     const fontSize = document.getElementById('font-size').value;
     const boxWidth = document.getElementById('box-width').value;
     const fontFamily = document.getElementById('font-family').value;
     
+    // --- Håndtering av rammer og tilpasning ---
+    // Nullstill klasser først
+    area.classList.remove('with-border', 'fit-boxes');
+    
+    // Aktiver boks-innstillinger for bredde-inputen
+    document.getElementById('box-width').disabled = isFit;
+
     if (hasBorder) {
         area.classList.add('with-border');
-        area.style.setProperty('--box-width', boxWidth + "px");
+        
+        if (isFit) {
+            area.classList.add('fit-boxes');
+            area.style.setProperty('--box-width', "auto");
+        } else {
+            area.style.setProperty('--box-width', boxWidth + "px");
+        }
+        
+        // Høyden bør alltid følge skriftstørrelsen for å se bra ut
         area.style.setProperty('--box-height', (parseInt(fontSize) * 2.5) + "px");
-    } else {
-        area.classList.remove('with-border');
     }
 
+    // Stil for selve arket
     area.style.fontSize = fontSize + "px";
     area.style.fontFamily = fontFamily;
     area.style.fontWeight = isBold ? "bold" : "normal";
 
+    // --- Prosessering av tekst ---
     const lines = input.split('\n');
     let finalHtml = "";
 
